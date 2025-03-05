@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Admin Dashboard - Yoga Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    
+    <!-- Navigation Bar -->
+    {% include 'admin_navbar.html' %}
+
+
+    <!-- Dashboard Content -->
+    <div class="container mx-auto mt-10">
+        <h2 class="text-3xl font-bold text-center text-gray-800">Yoga App Statistics</h2>
+
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 text-center">
+            <div class="p-6 bg-white shadow-lg rounded-lg">
+                <h3 class="text-xl font-semibold">🧑‍🤝‍🧑 Total Users</h3>
+                <p class="text-4xl text-blue-700 mt-2">{{ total_users }}</p>
+            </div>
+            <div class="p-6 bg-white shadow-lg rounded-lg">
+                <h3 class="text-xl font-semibold">🧘 Total Asanas</h3>
+                <p class="text-4xl text-green-700 mt-2">{{ total_asanas }}</p>
+            </div>
+            <div class="p-6 bg-white shadow-lg rounded-lg">
+                <h3 class="text-xl font-semibold">⏳ Total Time Spent</h3>
+                <p class="text-4xl text-red-700 mt-2">{{ total_time_spent // 60 }} min</p>
+            </div>
+        </div>
+
+        <!-- Asana Usage Stats -->
+        <div class="mt-10">
+            <h2 class="text-2xl font-semibold text-center text-gray-800">📊 Most Practiced Asanas</h2>
+            <table class="w-full mt-6 bg-white shadow-md rounded-lg overflow-hidden">
+                <thead>
+                    <tr class="bg-gray-300">
+                        <th class="px-4 py-2">Asana Name</th>
+                        <th class="px-4 py-2">Times Practiced</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asana, count in asana_usage %}
+                    <tr class="text-center border-b">
+                        <td class="px-4 py-2">{{ asana }}</td>
+                        <td class="px-4 py-2">{{ count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

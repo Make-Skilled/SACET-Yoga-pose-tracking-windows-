@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Admin Dashboard - Yoga Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    {% include 'admin_navbar.html' %}
+
+    <div class="container mx-auto mt-10">
+        <h2 class="text-3xl font-bold text-center text-gray-800">🏆 User Leaderboard</h2>
+        <div class="flex justify-end mt-6">
+            <a href="{{ url_for('export_leaderboard_csv') }}" 
+               class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                📥 Export CSV
+            </a>
+        </div>
+        
+        <!-- Leaderboard Table -->
+        <table class="w-full mt-6 bg-white shadow-md rounded-lg">
+            <thead>
+                <tr class="bg-gray-300">
+                    <th class="px-4 py-2">Rank</th>
+                    <th class="px-4 py-2">User</th>
+                    <th class="px-4 py-2">Total Asanas</th>
+                    <th class="px-4 py-2">Total Time Spent (min)</th>
+                    <th class="px-4 py-2">🏅 Badge</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+        </table>
+
+        <!-- Charts Section -->
+        <div class="mt-12">
+            <h2 class="text-2xl font-bold text-center text-gray-800">📊 Performance Charts</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <div class="p-6 bg-white shadow-lg rounded-lg">
+                    <h3 class="text-lg font-semibold text-center">Top Users by Practice Time</h3>
+                    <canvas id="topUsersChart"></canvas>
+                </div>
+                <div class="p-6 bg-white shadow-lg rounded-lg">
+                    <h3 class="text-lg font-semibold text-center">Daily Activity Overview</h3>
+                    <canvas id="dailyProgressChart"></canvas>
+                </div>
+            </div>
+        </div>
+    
+
+        <div class="mt-12">
+            <h2 class="text-2xl font-bold text-center text-gray-800">📆 Weekly & Monthly Analytics</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <!-- Weekly Performance Chart -->
+                <div class="p-6 bg-white shadow-lg rounded-lg">
+                    <h3 class="text-lg font-semibold text-center">📅 Weekly Performance</h3>
+                    <canvas id="weeklyPerformanceChart"></canvas>
+                </div>
+        
+                <!-- Monthly Performance Chart -->
+                <div class="p-6 bg-white shadow-lg rounded-lg">
+                    <h3 class="text-lg font-semibold text-center">📆 Monthly Performance</h3>
+                    <canvas id="monthlyPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br/><br/>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        fetch("{{ url_for('admin_analytics_data') }}")
+            .then(response => response.json())
+            .then(data => {
+                // Weekly Performance Chart
+                new Chart(document.getElementById("weeklyPerformanceChart"), {
+                    type: 'line',
+                    data: {
+                        labels: data.weekly_dates,
+                        datasets: [{
+                            label: "Time Spent Per Day (min)",
+                            data: data.weekly_times,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+    
+                // Monthly Performance Chart
+                new Chart(document.getElementById("monthlyPerformanceChart"), {
+                    type: 'line',
+                    data: {
+                        labels: data.monthly_dates,
+                        datasets: [{
+                            label: "Time Spent Per Day (min)",
+                            data: data.monthly_times,
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+            })
+            .catch(error => console.error("Error loading data:", error));
+    </script>
+    
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        fetch("{{ url_for('user_performance_data') }}")
+            .then(response => response.json())
+            .then(data => {
+                let leaderboardBody = document.getElementById("leaderboard-body");
+                leaderboardBody.innerHTML = "";
+
+                data.top_users.forEach((user, index) => {
+                    let badge = data.badges[index] || "";  // Get badge if available
+                    leaderboardBody.innerHTML += `
+                        <tr class="text-center border-b">
+                            <td class="px-4 py-2 font-bold">🏅 ${index + 1}</td>
+                            <td class="px-4 py-2">${user}</td>
+                            <td class="px-4 py-2">${data.time_spent[index]}</td>
+                            <td class="px-4 py-2">${data.time_spent[index]} min</td>
+                            <td class="px-4 py-2">${badge}</td>
+                        </tr>
+                    `;
+                });
+
+                // Bar Chart - Top Users
+                new Chart(document.getElementById("topUsersChart"), {
+                    type: 'bar',
+                    data: {
+                        labels: data.top_users,
+                        datasets: [{
+                            label: "Total Time Spent (min)",
+                            data: data.time_spent,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+
+                // Line Chart - Daily Activity
+                new Chart(document.getElementById("dailyProgressChart"), {
+                    type: 'line',
+                    data: {
+                        labels: data.dates,
+                        datasets: [{
+                            label: "Time Spent Per Day (min)",
+                            data: data.daily_time,
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+            })
+            .catch(error => console.error("Error loading data:", error));
+    </script>
+</body>
+</html>

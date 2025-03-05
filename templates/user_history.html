@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Yoga Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+    {% include 'user_navbar.html' %}
+
+    <div class="container mx-auto mt-10">
+        <h2 class="text-3xl font-bold text-center text-gray-800">Your Asana Practice History</h2>
+
+        <table class="w-full mt-6 bg-white shadow-md rounded-lg">
+            <thead>
+                <tr class="bg-gray-300">
+                    <th class="px-4 py-2">Asana Name</th>
+                    <th class="px-4 py-2">Start Time</th>
+                    <th class="px-4 py-2">Duration (min)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in history %}
+                <tr class="text-center border-b">
+                    <td class="px-4 py-2">{{ entry.asana.name }}</td>
+                    <td class="px-4 py-2">{{ entry.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td class="px-4 py-2">{{ (entry.time_spent // 60) if entry.time_spent else 'Ongoing' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

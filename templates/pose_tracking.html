@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoga Pose Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        #webcam {
+            position: relative;
+        }
+    
+        #stopCameraBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;  /* ✅ Ensures buttons stay on top */
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Navbar -->
+    {% include 'user_navbar.html' %}
+
+    <!-- Pose Tracking Section -->
+    <div class="container mx-auto mt-6 flex flex-col md:flex-row items-center justify-center space-x-6">
+        
+        <!-- Reference Pose -->
+        <div class="w-full md:w-1/3 text-center">
+            <h2 class="text-xl font-bold text-gray-800">Reference Pose: {{ pose.name }}</h2>
+            <img src="../{{pose.reference_pose}}" alt="{{ pose.name }}" class="w-full rounded-lg shadow-lg mt-4">
+            <p class="text-gray-600 mt-2">{{ pose.description }}</p>
+        </div>
+
+        <!-- Live Camera Feed -->
+        <div class="w-full md:w-1/3 flex flex-col items-center">
+            <h2 class="text-xl font-bold text-gray-800">Your Pose</h2>
+            <video id="webcam" autoplay playsinline class="w-full rounded-lg shadow-lg mt-4"></video>
+            <canvas id="output_canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+            <p id="feedback" class="text-red-500 font-semibold mt-4"></p>
+        </div>
+    </div>
+
+    {% if last_usage_id %}
+        <a href="{{ url_for('stop_asana', usage_id=last_usage_id) }}" 
+        id="stopCameraBtn" class="px-6 py-3 bg-red-500 text-white rounded-lg">
+            Stop Camera
+        </a>
+    {% else %}
+        <p class="text-gray-600 text-center">No active session found.</p>
+    {% endif %}
+
+    <script>
+        let video = document.getElementById("webcam");
+        let feedback = document.getElementById("feedback");
+
+        let stopCameraBtn = document.getElementById("stopCameraBtn");
+        let backToDashboardBtn = document.getElementById("backToDashboardBtn");
+
+        let stream = null;
+        let poseModel = null;
+        let animationFrameId = null;
+
+
+    
+        async function setupCamera() {
+            let stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        }
+
+        function stopCamera() {
+            console.log("🛑 Stopping camera...");
+
+            if (stream) {
+                let tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+                console.log("✅ Camera stopped.");
+            } else {
+                console.log("⚠️ No active camera stream.");
+            }
+
+            // Ensure the video element is completely removed
+            video.srcObject = null;
+            video.remove();
+        }
+        async function loadReferencePose() {
+            let x = "{{ x }}";              
+            let response = await fetch(`../static/poses/${x}.json`);
+
+            console.log(response);
+            return response.json();
+        }
+    
+        async function loadPoseModel() {
+            const pose = new Pose({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+            });
+    
+            pose.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+    
+            pose.onResults(async function(results) {
+                if (results.poseLandmarks) {
+                    let userAngles = calculateAngles(results.poseLandmarks);
+                    let referenceAngles = await loadReferencePose();
+                    comparePoses(userAngles, referenceAngles);
+                }
+            });
+    
+            async function detectPose() {
+                await pose.send({ image: video });
+                requestAnimationFrame(detectPose);
+            }
+    
+            detectPose();
+        }
+    
+        function calculateAngles(landmarks) {
+            function angle(a, b, c) {
+                let A = [landmarks[a].x, landmarks[a].y];
+                let B = [landmarks[b].x, landmarks[b].y];
+                let C = [landmarks[c].x, landmarks[c].y];
+                let ba = [A[0] - B[0], A[1] - B[1]];
+                let bc = [C[0] - B[0], C[1] - B[1]];
+                let dotProduct = ba[0] * bc[0] + ba[1] * bc[1];
+                let magnitude = Math.sqrt((ba[0] ** 2 + ba[1] ** 2) * (bc[0] ** 2 + bc[1] ** 2));
+                return Math.acos(dotProduct / magnitude) * (180 / Math.PI);
+            }
+    
+            return {
+                left_elbow: angle(11, 13, 15),
+                right_elbow: angle(12, 14, 16),
+                left_knee: angle(23, 25, 27),
+                right_knee: angle(24, 26, 28),
+                left_shoulder: angle(13, 11, 23),
+                right_shoulder: angle(14, 12, 24)
+            };
+        }
+    
+        function comparePoses(user, ref) {
+            let tolerance = 10;  // Angle difference threshold
+    
+            let feedbackText = "";
+    
+            if (Math.abs(user.left_elbow - ref.left_elbow) > tolerance) {
+                feedbackText += "Adjust left arm!\n";
+            }
+            if (Math.abs(user.right_elbow - ref.right_elbow) > tolerance) {
+                feedbackText += "Adjust right arm!\n";
+            }
+            if (Math.abs(user.left_knee - ref.left_knee) > tolerance) {
+                feedbackText += "Bend left knee properly!\n";
+            }
+            if (Math.abs(user.right_knee - ref.right_knee) > tolerance) {
+                feedbackText += "Bend right knee properly!\n";
+            }
+            if (Math.abs(user.left_shoulder - ref.left_shoulder) > tolerance) {
+                feedbackText += "Adjust left shoulder!\n";
+            }
+            if (Math.abs(user.right_shoulder - ref.right_shoulder) > tolerance) {
+                feedbackText += "Adjust right shoulder!\n";
+            }
+    
+            feedback.textContent = feedbackText || "✅ Perfect Pose!";
+        }
+    
+        window.onload = function () {
+            setupCamera().then(loadPoseModel);
+            document.getElementById("stopCameraBtn").addEventListener("click", stopCamera);
+
+        };
+    </script>
+    
+</body>
+</html>

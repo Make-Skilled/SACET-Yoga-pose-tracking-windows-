@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Yoga Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+    {% include 'user_navbar.html' %}
+
+<div class="container mx-auto mt-10">
+    <h2 class="text-3xl font-bold text-center text-gray-800">Available Asanas</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+        {% for pose in poses %}
+        <div class="bg-white shadow-lg rounded-lg p-6 text-center">
+            <img src="{{pose.reference_pose}}" 
+                 alt="{{ pose.name }}" 
+                 class="w-full h-auto max-h-64 object-contain rounded-lg">
+            <h3 class="text-xl font-semibold mt-4">{{ pose.name }}</h3>
+            <p class="text-gray-600 mt-2">{{ pose.description }}</p>
+
+            <div class="mt-4">
+                <a href="{{ url_for('start_asana', asana_id=pose.id) }}" 
+                   class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                    🏁 Start Tracking
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+
+
+</body>
+</html>

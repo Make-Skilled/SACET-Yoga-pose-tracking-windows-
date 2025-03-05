@@ -1,0 +1,13 @@
+<nav class="bg-blue-500 p-4 flex justify-between items-center shadow-md">
+    <h1 class="text-white text-2xl font-bold">Yoga Tracker</h1>
+
+    <div class="hidden md:flex space-x-6">
+        <a href="{{ url_for('dashboard') }}" class="text-white text-lg">🏠 Home</a>
+        <a href="{{ url_for('history') }}" class="text-white text-lg">📅 My History</a>
+        <a href="{{ url_for('leaderboard') }}" class="text-white text-lg">🏆 Leaderboard</a>
+    </div>
+
+    <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+        🚪 Logout
+    </a>
+</nav>
